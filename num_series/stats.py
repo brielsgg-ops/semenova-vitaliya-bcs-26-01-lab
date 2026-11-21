@@ -1,13 +1,22 @@
+"""Модуль базовых статистических показателей и коэффициента вариации."""
+
+from __future__ import annotations
+
+import math
 from typing import Dict, Sequence
 
+
+# ---------------------------------------------------------------------------
+# Валидация (единая точка отказа - fail fast)
+# ---------------------------------------------------------------------------
 def _ensure_not_empty(data: Sequence[float]) -> None:
     if not data:
         raise ValueError("Ряд пуст: расчёт статистики невозможен")
 
-# Все публичные функции вызывают валидатор первой строкой — это принцип fail fast.
 
-# Реализация:
-
+# ---------------------------------------------------------------------------
+# Базовые и дополнительные показатели (Вариант 10: CV = stdev / mean)
+# ---------------------------------------------------------------------------
 def mean(data: Sequence[float]) -> float:
     """Среднее арифметическое."""
     _ensure_not_empty(data)
@@ -30,8 +39,31 @@ def spread(data: Sequence[float]) -> float:
     return float(max(data) - min(data))
 
 
+def stdev(data: Sequence[float]) -> float:
+    """Выборочное среднее квадратическое отклонение (СКО, знаменатель n - 1)."""
+    _ensure_not_empty(data)
+    n = len(data)
+    if n < 2:
+        return 0.0
+    m = mean(data)
+    sq_diff_sum = sum((float(x) - m) ** 2 for x in data)
+    return math.sqrt(sq_diff_sum / (n - 1))
+
+
+def coefficient_of_variation(data: Sequence[float]) -> float:
+    """Коэффициент вариации CV = stdev / mean.
+
+    При mean == 0 возвращает math.inf.
+    """
+    _ensure_not_empty(data)
+    m = mean(data)
+    if m == 0.0:
+        return math.inf
+    return stdev(data) / m
+
+
 def summarize(data: Sequence[float]) -> Dict[str, float]:
-    """Сводный отчёт: count, mean, median, spread, min, max."""
+    """Сводный отчёт: count, mean, median, spread, min, max, stdev, cv."""
     _ensure_not_empty(data)
     return {
         "count": len(data),
@@ -40,4 +72,16 @@ def summarize(data: Sequence[float]) -> Dict[str, float]:
         "spread": spread(data),
         "min": float(min(data)),
         "max": float(max(data)),
+        "stdev": stdev(data),
+        "cv": coefficient_of_variation(data),
     }
+
+
+__all__ = [
+    "mean",
+    "median",
+    "spread",
+    "stdev",
+    "coefficient_of_variation",
+    "summarize",
+]
